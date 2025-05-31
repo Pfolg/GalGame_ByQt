@@ -12,15 +12,16 @@ import sys
 
 from PIL.ImageQt import QPixmap
 from PySide6 import QtCore
-from PySide6.QtCore import Qt, QSize, QPropertyAnimation, QPoint, QByteArray
+from PySide6.QtCore import Qt, QSize, QPropertyAnimation, QPoint, QByteArray, QTimer
 from PySide6.QtGui import QAction, QIcon, QFont, QColor
 from PySide6.QtUiTools import QUiLoader
 from PySide6.QtWidgets import QWidget, QApplication, QCheckBox, QLineEdit, QPushButton, QTextEdit, QInputDialog, \
-    QMessageBox, QLabel, QMenu, QToolButton, QGraphicsDropShadowEffect
+    QMessageBox, QLabel, QMenu, QToolButton, QGraphicsDropShadowEffect, QGraphicsOpacityEffect
 
 import manage_data as mda
 import process_data as pda
 
+# 载入数据
 data_class = mda.ManageData()
 phot_data = mda.convert_value_to_str(mda.read_manifest(data_class.phot_manifest))
 ui_data = mda.read_manifest(data_class.ui_manifest)
@@ -174,7 +175,6 @@ class WidgetCommunication(QWidget):
     def __init__(self, parent):
         super().__init__()
         self.setParent(parent)
-
         # 加载字体
         self.font_family = pda.load_font(font_data.get("MapleMono-NF-CN-Medium"))
         # 对话框
@@ -191,13 +191,132 @@ class WidgetCommunication(QWidget):
         self.btn_choice1 = QPushButton(self.widget_choice)
         self.btn_choice2 = QPushButton(self.widget_choice)
         self._choice_num: int = 0  # 0、1
-
         # 输入窗口
         self.widget_input = QWidget(self)
         self.input_label = QLabel(self.widget_input)
         self.input_line = QLineEdit(self.widget_input)
         self.input_hand = QPushButton(self.widget_input)
         self._input_content: str = ""
+        # 确认窗口
+        self.widget_confirm = QWidget(self)
+        self.confirm_label = QLabel(self.widget_confirm)
+        self.confirm_btn_yes = QPushButton(self.widget_confirm)
+        self.confirm_btn_no = QPushButton(self.widget_confirm)
+        self.confirm_bool: bool = False
+        # 消息窗口
+        self.widget_info = QWidget(self)
+        self.info_line = QTextEdit(self.widget_info)
+        # 消息fade
+        # 创建淡入淡出效果
+        self.opacity_effect = QGraphicsOpacityEffect(self.info_line)
+        self.info_line.setGraphicsEffect(self.opacity_effect)
+        self.opacity_effect.setOpacity(1.0)  # 初始完全不透明
+        # 创建淡出动画
+        self.fade_out_animation = QPropertyAnimation(self.opacity_effect, QByteArray(b"opacity"))
+        self.fade_out_animation.setDuration(500)  # 0.5秒淡出时间
+        self.fade_out_animation.setStartValue(1.0)
+        self.fade_out_animation.setEndValue(0.0)
+        self.fade_out_animation.finished.connect(self.info_line.hide)
+        # 创建定时器
+        self.hide_timer = QTimer()
+        self.hide_timer.setSingleShot(True)
+        # 连接动画
+        self.hide_timer.timeout.connect(self.fade_out_animation.start)
+
+    def select_confirm_yes(self) -> None:
+        self.confirm_bool = True
+        self.widget_confirm.hide()
+
+    def select_confirm_no(self) -> None:
+        self.confirm_bool = False
+        self.widget_confirm.hide()
+
+    def setup_confirm_w(self) -> None:
+        self.widget_confirm.setObjectName("widget_confirm")
+        self.widget_confirm.setStyleSheet(
+            """
+            #widget_confirm{
+            background-color: rgba(170, 255, 255,.3);
+            border: 1px solid rgba(255, 255, 127,.2);
+            border-radius: 10px;
+            }
+            QPushButton {
+                background-color: rgba(170, 255, 255,.5);
+                border: 1px solid rgba(255, 255, 127,.5);
+                border-radius: 20px;
+                padding: 8px 15px;
+                min-width: 80px;
+                min-height: 30px;
+                color: #333;
+            }
+            QPushButton:hover {
+                background-color: rgba(170, 255, 255,.7);
+                border: 1px solid rgba(255, 255, 127,.7);
+            }
+            QPushButton:pressed {
+                background-color: rgb(255, 255, 255);
+                border: 1px solid rgb(255, 255, 255);
+            }
+                
+            """
+        )
+        self.confirm_label.setGeometry(
+            int(.1 * self.widget_confirm.width()), int(.2 * self.widget_confirm.height()),
+            int(.8 * self.widget_confirm.width()), int(.2 * self.widget_confirm.height())
+        )
+        self.confirm_btn_yes.setGeometry(
+            int(.2 * self.widget_confirm.width()), int(.6 * self.widget_confirm.height()),
+            int(.2 * self.widget_confirm.width()), int(.2 * self.widget_confirm.height())
+        )
+        self.confirm_btn_no.setGeometry(
+            int(.6 * self.widget_confirm.width()), int(.6 * self.widget_confirm.height()),
+            int(.2 * self.widget_confirm.width()), int(.2 * self.widget_confirm.height())
+        )
+        self.confirm_label.setFont(QFont(self.font_family, 20))
+        self.confirm_btn_yes.setFont(QFont(self.font_family, 20))
+        self.confirm_btn_no.setFont(QFont(self.font_family, 20))
+        self.confirm_label.setText("Question content")
+        self.confirm_btn_yes.setText("YES")
+        self.confirm_btn_no.setText("NO")
+        self.confirm_btn_yes.clicked.connect(self.select_confirm_yes)
+        self.confirm_btn_no.clicked.connect(self.select_confirm_no)
+
+    def setup_info_w(self) -> None:
+        # 定义位置
+        self.info_line.setGeometry(0, 0, self.widget_info.width(), self.widget_info.height())
+        # 设置样式
+        self.info_line.setStyleSheet(
+            "background-color: rgba(170, 255, 255,.3);"
+            "border: 1px solid rgba(255, 255, 127,.2);"
+            "border-radius: 10px;"
+            "padding:4px,8px,4px,8px"
+        )
+        # 设置字体
+        self.info_line.setFont(QFont(self.font_family, 18))
+        # 初始状态为隐藏
+        self.info_line.hide()
+        # 完全只读
+        self.info_line.setTextInteractionFlags(Qt.TextInteractionFlag.NoTextInteraction)
+
+    def showMessage(self, msg: str, duration=5000) -> None:
+        # 1. 停止所有正在进行的动画和定时器
+        if self.hide_timer.isActive():
+            self.hide_timer.stop()
+
+        if self.fade_out_animation.state() == QPropertyAnimation.State.Running:
+            self.fade_out_animation.stop()
+
+        # 2. 重置透明度为完全不透明
+        self.opacity_effect.setOpacity(1.0)
+
+        # 3. 确保控件可见
+        self.info_line.show()
+
+        # 4. 设置新消息内容
+        self.info_line.setMarkdown(msg)
+
+        # 5. 启动新定时器
+        self.hide_timer.start(duration)
 
     def setup_input_w(self) -> None:
         # 设置按钮大小位置
@@ -254,7 +373,7 @@ class WidgetCommunication(QWidget):
             self._input_content = answer
             self.widget_input.hide()
         else:
-            QMessageBox.warning(self, "警告", "您的输入为空！")
+            self.showMessage("<span style='color:red'>输入为空！</span>")
 
     def set_question(self, q: str) -> None:
         self.input_label.setText(q)
@@ -380,6 +499,8 @@ class WidgetCommunication(QWidget):
 
         self.widget_choice.setGeometry(int(.3 * x), int(.2 * y), int(.4 * x), int(.4 * y))
         self.widget_input.setGeometry(int(.3 * x), int(.4 * y), int(.4 * x), int(.4 * y))
+        self.widget_confirm.setGeometry(int(.3 * x), int(.2 * y), int(.4 * x), int(.4 * y))
+        self.widget_info.setGeometry(int(.8 * x), 0, int(.2 * x), int(.2 * y))
         # self.widget_choice.setStyleSheet(
         #     "background-color: rgba(170, 255, 255,.3);"
         #     "border: 1px solid rgba(255, 255, 127,.2);"
@@ -393,6 +514,9 @@ class WidgetCommunication(QWidget):
 
         self.setup_choice_w()
         self.setup_input_w()
+        self.setup_confirm_w()
+        self.setup_info_w()
+
         self.function_bookmark()
 
         # self.widget_choice.show()
@@ -405,20 +529,30 @@ class WidgetEsc(QWidget):
         super().__init__()
         self.setParent(parent)
         self.is_visible = False
+        # ESC菜单动画总开关
+        self.isUsing = True
         # self.animation = QPropertyAnimation(self, b"pos")
         self.animation = QPropertyAnimation(self, QByteArray(b"pos"))
         self.label_logo = QLabel(self)  # logo
-        self.btn1 = QPushButton(self)  # 继续游戏
-        self.btn2 = QPushButton(self)  # 新游戏
-        self.btn3 = QPushButton(self)  # 设置
-        self.btn4 = QPushButton(self)  # 登录界面
-        self.btn5 = QPushButton(self)  # 关于
-        self.btn6 = QPushButton(self)  # 退出
-        self.btns = [self.btn1, self.btn2, self.btn3, self.btn4, self.btn5, self.btn6]
+        self.btn_continue = QPushButton(self)  # 继续游戏
+        self.btn_newGame = QPushButton(self)  # 新游戏
+        self.btn_setting = QPushButton(self)  # 设置
+        self.btn_login = QPushButton(self)  # 登录界面
+        self.btn_about = QPushButton(self)  # 关于
+        self.btn_quit = QPushButton(self)  # 退出
+        self.btns = [
+            self.btn_continue, self.btn_newGame, self.btn_setting,
+            self.btn_login, self.btn_about, self.btn_quit
+        ]
 
     def apply_styles(self):
         """应用CSS样式"""
-        self.setStyleSheet("""
+        """
+        *{
+            background - color: rgba(98, 209, 210, 0.1);
+        }
+        """
+        self.setStyleSheet("""            
             /* 菜单按钮通用样式 */
             QPushButton {
                 background-color: rgba(52, 152, 219, 0.3);
@@ -456,13 +590,14 @@ class WidgetEsc(QWidget):
         shadow.setOffset(5, 0)  # 阴影向右偏移
         self.setGraphicsEffect(shadow)
 
-    def toggle_menu(self):
+    def toggle_menu(self) -> None:
         """切换菜单显示状态"""
         # 如果动画正在运行，先停止
         if self.animation.state() == QPropertyAnimation.State.Running:
             self.animation.stop()
-
         self.is_visible = not self.is_visible
+        if not self.isUsing:
+            self.is_visible = False
 
         # 获取当前菜单宽度
         menu_width = self.width()
@@ -490,20 +625,93 @@ class WidgetEsc(QWidget):
             int(.2 * self.height()))
         _x, _y, w, h, step = (
             int(.05 * self.width()),
-            int(.4 * self.height()),
+            int(.3 * self.height()),
             int(.6 * self.width()),
             int(.08 * self.height()),
             int(.1 * self.height())
         )
         __btn_words = ["继续游戏", "新游戏", "设置", "登录界面", "关于", "退出"]
+        font = pda.load_font(font_data.get("MapleMono-NF-CN-Medium"))
         for i in range(len(self.btns)):
             self.btns[i].setGeometry(_x, int(_y + step * i), w, h)
             self.btns[i].setText(__btn_words[i])
+            self.btns[i].setFont(QFont(font, 20))
 
-        self.btn1.clicked.connect(self.toggle_menu)
+        self.label_logo.setScaledContents(True)
+        self.label_logo.setPixmap(QPixmap(phot_data.get("logo_test")))
+        self.btn_continue.clicked.connect(self.toggle_menu)
         self.apply_styles()
         self.setup_animation()
         self.add_shadow_effect()
+
+
+class WidgetLogin(QWidget):
+    def __init__(self, parent):
+        super().__init__()
+        self.setParent(parent)
+        self.label_background = QLabel(self)
+        self.label_logo = QLabel(self)  # logo
+        self.btn_continue = QPushButton(self)  # 继续游戏
+        self.btn_newGame = QPushButton(self)  # 新游戏
+        self.btn_setting = QPushButton(self)  # 设置
+        self.btn_about = QPushButton(self)  # 关于
+        self.btn_quit = QPushButton(self)  # 退出
+        self.btns = [
+            self.btn_continue, self.btn_newGame, self.btn_setting,
+            self.btn_about, self.btn_quit
+        ]
+
+    def init_ui(self, x: int, y: int) -> None:
+        __btn_words = ["继续游戏", "新游戏", "设置", "关于", "退出"]
+        font = pda.load_font(font_data.get("MapleMono-NF-CN-Medium"))
+        self.setGeometry(0, 0, x, y)
+        self.label_background.setGeometry(0, 0, x, y)
+        self.label_logo.setScaledContents(True)
+        self.label_background.setScaledContents(True)
+        self.label_background.setPixmap(QPixmap(phot_data.get("bg_login_test")))
+        self.label_logo.setGeometry(int(.35 * x), int(.1 * y), int(.3 * x), int(.2 * y))
+        self.label_logo.setPixmap(QPixmap(phot_data.get("logo_test")))
+        _x, _y, w, h, step = (
+            int(.3 * self.width()),
+            int(.4 * self.height()),
+            int(.4 * self.width()),
+            int(.08 * self.height()),
+            int(.1 * self.height())
+        )
+        for i in range(len(self.btns)):
+            self.btns[i].setGeometry(_x, int(_y + step * i), w, h)
+            self.btns[i].setText(__btn_words[i])
+            self.btns[i].setFont(QFont(font, 28))
+
+        self.apply_styles()
+        self.hide()
+
+    def apply_styles(self):
+        """应用CSS样式"""
+        self.setStyleSheet("""            
+            /* 菜单按钮通用样式 */
+            QPushButton {
+                background-color: rgba(52, 152, 219, 0.3);
+                color: #ecf0f1;
+                font-size: 28px;
+                text-align: center;
+                padding: 15px 20px;
+                border: none;
+                border-radius: 8px;
+                transition: all 0.3s ease;
+            }
+
+            /* 按钮悬停效果 */
+            QPushButton:hover {
+                background-color: rgba(52, 152, 219, 0.7);
+                transform: translateX(10px);
+            }
+
+            /* 按钮按下效果 */
+            QPushButton:pressed {
+                background-color: rgba(41, 128, 185, 0.9);
+            }
+        """)
 
 
 # 主窗口
@@ -522,11 +730,41 @@ class GameWindow(QWidget):
         # ESC菜单
         self.widget_esc = WidgetEsc(self)
         # 登录界面
-        self.widget_login = QWidget(self)
+        self.widget_login = WidgetLogin(self)
 
         # 初始化
         self.setup_ui()
         self.init_widgets()
+
+    def go_login_widget(self) -> None:
+        # 保存数据 暂停游戏
+
+        # 禁用相关组件
+        self.widget_esc.isUsing = False
+        self.widget_esc.hide()
+        self.widget_esc.toggle_menu()
+        self.widget_communication.hide()
+        self.widget_login.show()
+
+    def continue_game(self) -> None:
+        # 保存数据
+
+        # 隐藏/显示 ESC菜单
+        self.widget_esc.toggle_menu()
+        # 继续/暂停 游戏进度
+
+    def start_continue_game(self) -> None:
+        # 读取数据
+
+        # 显示到游戏进度
+
+        # 切换界面
+        self.widget_esc.isUsing = True
+        self.widget_esc.show()
+        self.widget_communication.show()
+        self.widget_bg.show()
+        self.widget_roles.show()
+        self.widget_login.hide()
 
     def init_widgets(self, x: int = None, y: int = None) -> None:
         if not x and not y:
@@ -534,8 +772,17 @@ class GameWindow(QWidget):
         self.widget_bg.init_ui(x, y)
         self.widget_communication.init_dialog_btn(x, y)
         self.widget_esc.init_ui(x, y)
+        self.widget_login.init_ui(x, y)
 
-        self.widget_communication.btn_menu.clicked.connect(self.widget_esc.toggle_menu)
+        # 继续游戏-ESC菜单
+        self.widget_communication.btn_menu.clicked.connect(self.continue_game)
+        # 退出游戏
+        self.widget_esc.btn_quit.clicked.connect(self.quit)
+        self.widget_login.btn_quit.clicked.connect(self.quit)
+        # 回到登录界面
+        self.widget_esc.btn_login.clicked.connect(self.go_login_widget)
+        # 继续游戏-登录界面
+        self.widget_login.btn_continue.clicked.connect(self.start_continue_game)
 
         self.widget_bg.hide()
         self.widget_communication.hide()
@@ -548,9 +795,18 @@ class GameWindow(QWidget):
 
     def keyPressEvent(self, event):
         if event.key() == Qt.Key.Key_Escape:
-            self.widget_esc.toggle_menu()
+            self.continue_game()
         else:
             super().keyPressEvent(event)
+
+    def quit(self) -> None:
+        # 记得保存数据
+
+        # 摧毁窗口
+        self.destroy()
+        # 退出程序
+        _app = QApplication.instance()
+        _app.quit()
 
 
 if __name__ == '__main__':
@@ -565,5 +821,7 @@ if __name__ == '__main__':
     b.widget_bg.set_bg(phot_data.get("bg_test"))  # 使用测试用背景
     b.widget_bg.set_logo(phot_data.get("logo_test"))
     b.widget_communication.show()
+    # b.widget_login.show()
+    b.widget_esc.isUsing = True
     b.widget_esc.show()
     sys.exit(app.exec())

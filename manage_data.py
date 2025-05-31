@@ -15,6 +15,14 @@ from dataclasses import asdict, dataclass
 from typing import List, Optional
 
 
+def get_book_mark_example() -> dict:
+    # 记得在使用数据时进行排序
+    return {
+        "latest": "0,0,0",  # 根据剧本拟定格式
+        "other": [],
+    }
+
+
 @dataclass
 class ProjectMetadata:
     authors: List[str]
@@ -27,7 +35,6 @@ class ProjectMetadata:
     speed: Optional[int] = None
     user: Optional[str] = None
     latest_point: Optional[str] = None
-    bookmark: Optional[str] = None
 
 
 class ManageData:
@@ -43,12 +50,12 @@ class ManageData:
             website=None,
             speed=10,
             user=None,
-            bookmark=None,
         )
         # 文件信息
         self.current_path = Path.cwd()
         self.folder_user = self.current_path / "user_data"
         self.file_user = self.folder_user / "user_data.dat"
+        self.file_bookmark = self.folder_user / "bookmark.dat"
         # 内容管理
         self.assets_root = self.current_path / "assets"  # 资源根目录
         # 资源类型配置 (资源类型名: (子目录名, 清单文件名))
@@ -156,6 +163,23 @@ def write_manifest(file: pathlib.Path, data: dict) -> None:
         json.dump(save_data, f, ensure_ascii=False, indent=4)
 
 
+def write_json_data(file: str, data: dict) -> None:
+    path = Path(file)
+    ManageData.create_dir(path.parent)
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=4, ensure_ascii=False)
+
+
+def read_json_data(file) -> dict:
+    if os.path.exists(file):
+        with open(file, "r", encoding="utf-8") as f:
+            d: dict = json.load(f)
+        return d
+    else:
+        write_json_data(file, get_book_mark_example())
+        return get_book_mark_example()
+
+
 if __name__ == '__main__':
     t = ManageData()
     t.show_data()
@@ -166,7 +190,7 @@ if __name__ == '__main__':
         description="这是一段测试数据",
         invalid_field="ignored"  # 自动忽略
     )
+
     print(read_manifest(t.ui_manifest))
     print(t.metadata.authors)
     print(t.resource_types)
-    os.remove("test.dat")
