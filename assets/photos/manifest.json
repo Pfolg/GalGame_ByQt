@@ -1,0 +1,11 @@
+{
+    "root": "D:\\programing\\Python_projects\\GalGameStart\\assets\\photos",
+    "bg_test": "D:\\programing\\Python_projects\\GalGameStart\\assets\\photos\\658397c325e34978b818c9870195df9a.jpg",
+    "logo_test": "D:\\programing\\Python_projects\\GalGameStart\\assets\\photos\\logo_test.png",
+    "btn_head": "D:\\programing\\Python_projects\\GalGameStart\\assets\\photos\\caret-right.svg",
+    "btn_back": "D:\\programing\\Python_projects\\GalGameStart\\assets\\photos\\caret-left.svg",
+    "btn_menu": "D:\\programing\\Python_projects\\GalGameStart\\assets\\photos\\bars.svg",
+    "btn_bookmark": "D:\\programing\\Python_projects\\GalGameStart\\assets\\photos\\bookmark.svg",
+    "btn_automatic_play": "D:\\programing\\Python_projects\\GalGameStart\\assets\\photos\\circle-play.svg",
+    "btn_automatic_stop": "D:\\programing\\Python_projects\\GalGameStart\\assets\\photos\\circle-pause.svg"
+}
