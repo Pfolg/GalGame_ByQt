@@ -8,5 +8,6 @@
     "btn_bookmark": "D:\\programing\\Python_projects\\GalGameStart\\assets\\photos\\bookmark.svg",
     "btn_automatic_play": "D:\\programing\\Python_projects\\GalGameStart\\assets\\photos\\circle-play.svg",
     "btn_automatic_stop": "D:\\programing\\Python_projects\\GalGameStart\\assets\\photos\\circle-pause.svg",
-    "bg_login_test": "D:\\programing\\Python_projects\\GalGameStart\\assets\\photos\\moon_tree_starry_sky_132139_1920x1080.jpg"
+    "bg_login_test": "D:\\programing\\Python_projects\\GalGameStart\\assets\\photos\\moon_tree_starry_sky_132139_1920x1080.jpg",
+    "btn_hide_ui": "D:\\programing\\Python_projects\\GalGameStart\\assets\\photos\\eye.svg"
 }

@@ -16,16 +16,16 @@ from PySide6.QtCore import Qt, QSize, QPropertyAnimation, QPoint, QByteArray, QT
 from PySide6.QtGui import QAction, QIcon, QFont, QColor
 from PySide6.QtUiTools import QUiLoader
 from PySide6.QtWidgets import QWidget, QApplication, QCheckBox, QLineEdit, QPushButton, QTextEdit, QInputDialog, \
-    QMessageBox, QLabel, QMenu, QToolButton, QGraphicsDropShadowEffect, QGraphicsOpacityEffect
+    QMessageBox, QLabel, QMenu, QToolButton, QGraphicsDropShadowEffect, QGraphicsOpacityEffect, QVBoxLayout, QHBoxLayout
 
 import manage_data as mda
 import process_data as pda
 
 # 载入数据
 data_class = mda.ManageData()
-phot_data = mda.convert_value_to_str(mda.read_manifest(data_class.phot_manifest))
-ui_data = mda.read_manifest(data_class.ui_manifest)
-font_data = mda.convert_value_to_str(mda.read_manifest(data_class.font_manifest))
+phot_data: dict = mda.convert_value_to_str(mda.read_manifest(data_class.phot_manifest))
+ui_data: dict = mda.read_manifest(data_class.ui_manifest)
+font_data: dict = mda.convert_value_to_str(mda.read_manifest(data_class.font_manifest))
 
 
 # 读取屏幕长宽
@@ -38,7 +38,7 @@ def get_screen_info() -> tuple:
 
         return screen.width(), screen.height()
     else:
-        return 0, 0
+        return 800, 600
 
 
 # 修改文件数据的窗口
@@ -178,14 +178,22 @@ class WidgetCommunication(QWidget):
         # 加载字体
         self.font_family = pda.load_font(font_data.get("MapleMono-NF-CN-Medium"))
         # 对话框
+        self.widget_name = QWidget(self)
+        self.label_name = QLabel(self.widget_name)
         self.dialog = QTextEdit(self)
         # 按钮组
         self.btn_back = QPushButton(self)
         self.btn_head = QPushButton(self)
         self.btn_bookmark = QToolButton(self)
+        self.btn_hide_ui = QPushButton(self)
         self.btn_automatic = QPushButton(self)
         self.btn_menu = QPushButton(self)
-        self.btns = [self.btn_back, self.btn_head, self.btn_menu, self.btn_bookmark, self.btn_automatic]
+        # 倒序添加——必须！
+        self.btns = [
+            self.btn_automatic, self.btn_hide_ui, self.btn_bookmark,
+            self.btn_menu, self.btn_head, self.btn_back,
+
+        ]
         # 选项窗口
         self.widget_choice = QWidget(self)
         self.btn_choice1 = QPushButton(self.widget_choice)
@@ -449,10 +457,43 @@ class WidgetCommunication(QWidget):
         self.btn_bookmark.setAutoRaise(True)
         self.btn_bookmark.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
 
+    def set_role_name(self, name: str) -> None:
+        self.label_name.setText(name)
+        # 自动调整宽度
+        # self.label_name.adjustSize()
+        self.label_name.show()
+
     def init_dialog_btn(self, x: int, y: int) -> None:
         self.setGeometry(0, 0, x, y)
+        # 对话框尺寸
         self.dialog.setGeometry(int(.2 * x), int(.75 * y), int(.6 * x), int(.2 * y))
-        # 设置样式
+        # 名称框尺寸
+        self.widget_name.setGeometry(0, int(.68 * y), x, int(.06 * y))
+        "===将标签居中==="
+        layout = QVBoxLayout(self.widget_name)
+        # 创建水平布局用于水平居中
+        h_layout = QHBoxLayout()
+        # 添加左侧弹簧（将标签向右推）
+        h_layout.addStretch()
+        h_layout.addWidget(self.label_name)
+        # 添加右侧弹簧（将标签向左推）
+        h_layout.addStretch()
+        # 将水平布局添加到主布局
+        layout.addLayout(h_layout)
+        "===end==="
+        self.label_name.setFont(QFont(self.font_family, 20))
+        self.label_name.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.set_role_name("亚历山大·格莱姆·贝尔")
+        # 设置角色名称框样式
+        self.label_name.setStyleSheet(
+            """
+                background-color:rgba(235, 244, 255,.2);
+                border: none;
+                border-radius: 8px;
+            """
+        )
+
+        # 设置对话框样式
         self.dialog.setStyleSheet(
             """
             QTextEdit{
@@ -477,30 +518,28 @@ class WidgetCommunication(QWidget):
         standardLastY = (self.dialog.y() + self.dialog.height() + btn_h * .2) / y
         # 步长
         step = .05
-        self.btn_menu.setGeometry(int(standardLastX * x), int(standardLastY * y), btn_w, btn_h)
-        self.btn_bookmark.setGeometry(int((standardLastX - step) * x), int(standardLastY * y), btn_w, btn_h)
-        self.btn_automatic.setGeometry(int((standardLastX - 2 * step) * x), int(standardLastY * y), btn_w, btn_h)
-        self.btn_head.setGeometry(int((standardLastX - 3 * step) * x), int(standardLastY * y), btn_w, btn_h)
-        self.btn_back.setGeometry(int((standardLastX - 4 * step) * x), int(standardLastY * y), btn_w, btn_h)
+        white_ratio = .2
+        for i in range(len(self.btns)):
+            self.btns[i].setGeometry(int((standardLastX - step * i) * x), int(standardLastY * y), btn_w, btn_h)
+            self.btns[i].setStyleSheet(f"background-color: rgba(255, 255, 255,{white_ratio});")
+            self.btns[i].setIconSize(QSize(24, 24))
         self.btn_back.setIcon(QIcon(phot_data.get("btn_back")))
         self.btn_head.setIcon(QIcon(phot_data.get("btn_head")))
         self.btn_menu.setIcon(QIcon(phot_data.get("btn_menu")))
         self.btn_bookmark.setIcon(QIcon(phot_data.get("btn_bookmark")))
+        self.btn_hide_ui.setIcon(QIcon(phot_data.get("btn_hide_ui")))
         self.btn_automatic.setIcon(QIcon(phot_data.get("btn_automatic_play")))
         self.btn_head.setToolTip("下页")
         self.btn_back.setToolTip("上页")
         self.btn_menu.setToolTip("菜单")
+        self.btn_hide_ui.setToolTip("隐藏UI")
         self.btn_bookmark.setToolTip("书签")
         self.btn_automatic.setToolTip("自动")
-        white_ratio = .2
-        for btn in self.btns:
-            btn.setStyleSheet(f"background-color: rgba(255, 255, 255,{white_ratio});")
-            btn.setIconSize(QSize(24, 24))
 
         self.widget_choice.setGeometry(int(.3 * x), int(.2 * y), int(.4 * x), int(.4 * y))
         self.widget_input.setGeometry(int(.3 * x), int(.4 * y), int(.4 * x), int(.4 * y))
         self.widget_confirm.setGeometry(int(.3 * x), int(.2 * y), int(.4 * x), int(.4 * y))
-        self.widget_info.setGeometry(int(.8 * x), 0, int(.2 * x), int(.2 * y))
+        self.widget_info.setGeometry(int(.01 * x), int(.2 * y), int(.2 * x), int(.2 * y))
         # self.widget_choice.setStyleSheet(
         #     "background-color: rgba(170, 255, 255,.3);"
         #     "border: 1px solid rgba(255, 255, 127,.2);"
@@ -517,10 +556,12 @@ class WidgetCommunication(QWidget):
         self.setup_confirm_w()
         self.setup_info_w()
 
+        self.btn_hide_ui.clicked.connect(self.hide)
         self.function_bookmark()
 
+        # self.widget_info.show()
         # self.widget_choice.show()
-        # self.widget_input.show()
+        self.widget_input.show()
 
 
 # ESC菜单
@@ -751,6 +792,7 @@ class GameWindow(QWidget):
 
         # 隐藏/显示 ESC菜单
         self.widget_esc.toggle_menu()
+        self.widget_communication.setEnabled(not self.widget_esc.is_visible)  # 能想到这样写的我真是天才！
         # 继续/暂停 游戏进度
 
     def start_continue_game(self) -> None:

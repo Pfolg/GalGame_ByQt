@@ -15,12 +15,21 @@ from dataclasses import asdict, dataclass
 from typing import List, Optional
 
 
-def get_book_mark_example() -> dict:
-    # 记得在使用数据时进行排序
-    return {
-        "latest": "0,0,0",  # 根据剧本拟定格式
-        "other": [],
-    }
+@dataclass
+class GameData:
+    index: Optional[str] = None
+    background: Optional[str] = None
+    role1_name: Optional[str] = None
+    role2_name: Optional[str] = None
+    role3_name: Optional[str] = None
+    role4_name: Optional[str] = None
+    role5_name: Optional[str] = None
+    role6_name: Optional[str] = None
+    text: Optional[str] = None
+    choice: Optional[dict[str:str]] = None
+    question: Optional[str] = None
+    confirm: Optional[str] = None
+    bgm: Optional[str] = None
 
 
 @dataclass
@@ -51,6 +60,7 @@ class ManageData:
             speed=10,
             user=None,
         )
+        self.game_data = GameData()
         # 文件信息
         self.current_path = Path.cwd()
         self.folder_user = self.current_path / "user_data"
@@ -124,11 +134,14 @@ class ManageData:
             # 3. 更新字段值
             setattr(self.metadata, key, value)
 
-    def get_metadata(self):
+    def get_metadata(self) -> dict:
         return asdict(self.metadata)
 
+    def get_game_data(self) -> dict:
+        return asdict(self.game_data)
+
     def show_data(self) -> dict:
-        print("\n".join(f"{i}:{j}" for i, j in self.metadata.__dict__.items()))
+        print("\n".join(f"{i}:{j}" for i, j in asdict(self.metadata).items()))
         return asdict(self.metadata)
 
 
@@ -176,8 +189,7 @@ def read_json_data(file) -> dict:
             d: dict = json.load(f)
         return d
     else:
-        write_json_data(file, get_book_mark_example())
-        return get_book_mark_example()
+        pass
 
 
 if __name__ == '__main__':

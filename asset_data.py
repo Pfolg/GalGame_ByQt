@@ -26,6 +26,7 @@ phot_data = {
     "btn_bookmark": current_path / "assets/photos/bookmark.svg",
     "btn_automatic_play": current_path / "assets/photos/circle-play.svg",
     "btn_automatic_stop": current_path / "assets/photos/circle-pause.svg",
+    "btn_hide_ui": current_path / "assets/photos/eye.svg",
     "bg_login_test": current_path / "assets/photos/moon_tree_starry_sky_132139_1920x1080.jpg"
 }
 text_data = {}
